@@ -63,6 +63,7 @@ func main() {
 		defer c.Close()
 		var msg string
 		switch ev := termbox.PollEvent(); ev.Type {
+		// refer to http://www.novell.com/documentation/extend52/Docs/help/Composer/books/TelnetAppendixB.html
 		case termbox.EventKey:
 			switch ev.Key {
 			case termbox.KeyEsc:
