@@ -5,8 +5,11 @@ import (
 	"fmt"
 	"github.com/gorilla/websocket"
 	"github.com/nsf/termbox-go"
+	"golang.org/x/text/encoding/traditionalchinese"
+	"golang.org/x/text/transform"
 	"net/http"
 	"net/url"
+	"os"
 )
 
 var addr = flag.String("addr", "ws.ptt.cc", "http service address")
@@ -31,7 +34,9 @@ func main() {
 	defer c.Close()
 
 	done := make(chan struct{})
-
+	termbox.Init()
+	termbox.SetOutputMode(termbox.Output256)
+	decoder := traditionalchinese.Big5.NewDecoder()
 	go func() {
 		defer c.Close()
 		defer close(done)
@@ -41,10 +46,18 @@ func main() {
 				fmt.Println(err)
 				return
 			}
-			fmt.Print(string(message))
+			result, _, err := transform.Bytes(decoder, message)
+			if err != nil {
+				os.Stdout.Write(message)
+				os.Stdout.Sync()
+
+			} else {
+				os.Stdout.Write(result)
+				os.Stdout.Sync()
+			}
 		}
 	}()
-	termbox.Init()
+
 	defer termbox.Close()
 	for {
 		defer c.Close()
