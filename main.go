@@ -1,13 +1,12 @@
 package main
 
 import (
-	"bufio"
 	"flag"
 	"fmt"
 	"github.com/gorilla/websocket"
+	"github.com/nsf/termbox-go"
 	"net/http"
 	"net/url"
-	"os"
 )
 
 var addr = flag.String("addr", "ws.ptt.cc", "http service address")
@@ -33,8 +32,6 @@ func main() {
 
 	done := make(chan struct{})
 
-	reader := bufio.NewReader(os.Stdin)
-
 	go func() {
 		defer c.Close()
 		defer close(done)
@@ -44,22 +41,55 @@ func main() {
 				fmt.Println(err)
 				return
 			}
-			fmt.Println(string(message))
+			fmt.Print(string(message))
 		}
 	}()
+	termbox.Init()
+	defer termbox.Close()
 	for {
 		defer c.Close()
-		bt, err := reader.ReadByte()
-		if err != nil {
-			fmt.Println(err)
-			return
+		var msg string
+		switch ev := termbox.PollEvent(); ev.Type {
+		case termbox.EventKey:
+			switch ev.Key {
+			case termbox.KeyEsc:
+				msg = "\u001b"
+				break
+			case termbox.KeyArrowDown:
+				msg = "\u001b[B"
+				break
+			case termbox.KeyArrowLeft:
+				msg = "\u001b[D"
+				break
+			case termbox.KeyArrowRight:
+				msg = "\u001b[C"
+				break
+			case termbox.KeyArrowUp:
+				msg = "\u001b[A"
+				break
+			case termbox.KeyEnter:
+				msg = "\u001bOM"
+				break
+			case termbox.KeyTab:
+				msg = "\u0009"
+				break
+			case termbox.KeyPgdn:
+				msg = "\u001b[6~"
+				break
+			case termbox.KeyPgup:
+				msg = "\u001b[5~"
+				break
+			default:
+				msg = string(ev.Ch)
+				break
+			}
+			break
+		default:
+			msg = string(ev.Ch)
+			break
 		}
-		// Necessary or not? I am not sure
-		msg := []byte{bt}
-		if bt == LF {
-			msg = []byte{CR, LF}
-		}
-		err = c.WriteMessage(websocket.BinaryMessage, msg)
+		bmsg := []byte(msg)
+		err := c.WriteMessage(websocket.BinaryMessage, bmsg)
 		if err != nil {
 			fmt.Println(err)
 			return
